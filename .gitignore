@@ -1,0 +1,13 @@
+# backend (Spring Boot) 
+backend/target/ 
+backend/.classpath 
+backend/.project 
+backend/.settings/ 
+backend/*.iml 
+backend/.idea/ 
+ 
+# frontend (Angular) 
+frontend/node_modules/ 
+frontend/dist/ 
+frontend/.angular/ 
+frontend/.vscode 

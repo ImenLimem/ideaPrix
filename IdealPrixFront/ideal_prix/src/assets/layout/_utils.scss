@@ -1,0 +1,74 @@
+/* Utils */
+.clearfix:after {
+    content: ' ';
+    display: block;
+    clear: both;
+}
+
+.card {
+    background: var(--surface-card);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border-radius: var(--content-border-radius);
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.p-toast {
+    &.p-toast-top-right,
+    &.p-toast-top-left,
+    &.p-toast-top-center {
+        top: 100px;
+    }
+}
+.custom-modal {
+    width: 80%; /* Par exemple, 80% de la largeur de l'écran */
+    max-width: 1000px; /* Largeur maximale */
+    height: auto; /* La hauteur s'ajustera automatiquement en fonction du contenu */
+}
+/* Grid layout adjustment for fields */
+.grid {
+    display: grid;
+    grid-template-columns: 1fr; /* For mobile */
+    gap: 1rem;
+}
+
+@media (min-width: 640px) {
+    .grid {
+        grid-template-columns: repeat(2, 1fr); /* For medium screens, divide into 2 columns */
+    }
+}
+
+@media (min-width: 1024px) {
+    .grid {
+        grid-template-columns: repeat(2, 1fr); /* For larger screens, keep 2 columns */
+    }
+}
+
+/* Custom styling for float label input */
+.p-floatlabel input {
+    width: 100%;
+}
+
+/* Style for file input (image section) */
+input[type="file"] {
+    margin-top: 10px;
+    padding: 5px;
+}
+
+/* Aligning buttons at the center */
+.flex.justify-center {
+    justify-content: center;
+    gap: 10px;
+}
+.supplier-details-dialog .p-dialog-content {
+  background: #f9fafb;
+}
+
+.supplier-details-dialog h3 {
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+

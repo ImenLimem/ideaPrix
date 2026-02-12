@@ -1,0 +1,10 @@
+{
+  "devDependencies": {
+    "@types/file-saver": "^2.0.7"
+  },
+  "dependencies": {
+    "file-saver": "^2.0.5",
+    "pdfmake": "^0.3.3",
+    "xlsx": "^0.18.5"
+  }
+}

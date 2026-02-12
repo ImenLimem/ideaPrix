@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Bon de Commande</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        h1, h2, h3 { color: #333; }
+        .header, .footer { width: 100%; text-align: center; }
+        .header h2 { margin: 0; }
+        .company-info, .fournisseur-info { margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        table, th, td { border: 1px solid #333; }
+        th, td { padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .total { text-align: right; font-weight: bold; }
+        .signature { margin-top: 40px; text-align: right; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Bon de Commande</h1>
+    <h3>Numéro: {{numero}}</h3>
+    <h4>Statut: {{statut}}</h4>
+    <h4>Date de commande: {{dateCommande}}</h4>
+</div>
+
+<div class="company-info">
+    <strong>Société Hosni Ayed Holding</strong><br>
+    Avenue Hbib Bourguiba Kisbet el Madiouni<br>
+    Email: contact@hosniayed.com<br>
+    Tél: +216 xx xxx xxx<br>
+    Code TVA: 1810075L/A/M/000
+</div>
+
+<div class="fournisseur-info">
+    <strong>Fournisseur:</strong><br>
+    {{fournisseurNom}} {{fournisseurPrenom}}<br>
+    Email: {{fournisseurEmail}}<br>
+    Tél: {{fournisseurTel}}<br>
+    Adresse: {{fournisseurAdresse}}
+</div>
+
+<table>
+    <thead>
+    <tr>
+        <th>Code</th>
+        <th>Nom de l'article</th>
+        <th>Quantité</th>
+        <th>Prix Achat</th>
+        <th>Total</th>
+    </tr>
+    </thead>
+    <tbody>
+    {{articles}}
+    </tbody>
+</table>
+
+<div class="total">
+    Total: {{totalPrix}} TND
+</div>
+
+<div class="signature">
+    Signature: ______________________
+</div>
+
+</body>
+</html>
