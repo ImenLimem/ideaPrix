@@ -64,7 +64,7 @@ import { Article } from '@/models/Article';
         class="p-button-rounded p-button-primary"
         (click)="openAddCommandeDialog()"
       ></button>
-      <button pButton label="Exporter" icon="pi pi-file-excel" class="p-button-rounded p-button-success"></button>
+      <!--<button pButton label="Télécharger liste des prix" icon="pi pi-file-excel" class="p-button-rounded p-button-success"></button>-->
     </div>
   </div>
 
@@ -85,82 +85,95 @@ import { Article } from '@/models/Article';
     </div>
   </div>
 
-  <!-- Table des commandes -->
-  <p-table
-    [value]="filteredBonDeCommandes()"
-    [paginator]="true"
-    [rows]="20"
-    [totalRecords]="bonDeCommandes.length"
-    [rowsPerPageOptions]="[30, 50, 100]"
-    class="p-datatable-gridlines"
-  >
-    <ng-template pTemplate="header">
-      <tr>
-        <th>Numéro</th>
-        <th>Fournisseur</th>
-        <th>Date Commande</th>
-        <th>Date Livraison</th>
-         <th>Date Expedition</th>
-        <th>Status</th>
-        <th>Actions</th>
-      </tr>
-    </ng-template>
+  <!-- Table des commandes avec tri sur certaines colonnes -->
+<p-table
+  [value]="filteredBonDeCommandes()"
+  [paginator]="true"
+  [rows]="20"
+  [totalRecords]="bonDeCommandes.length"
+  [rowsPerPageOptions]="[30, 50, 100]"
+  class="p-datatable-gridlines"
+>
+  <ng-template pTemplate="header">
+    <tr>
+      <th>Numéro</th>
+      <th>Fournisseur</th>
+       <th>Total ($)</th>
 
-    <ng-template pTemplate="body" let-commande>
-      <tr>
-        <td>{{ commande.numeroBonCommande }}</td>
-        <td>{{ commande.fournisseur.nom }} {{ commande.fournisseur.prenom }}</td>
-        <td>{{ commande.dateCommande | date: 'dd/MM/yyyy' }}</td>
-        <td>{{ commande.dateLivraison | date: 'dd/MM/yyyy' }}</td>
-        <td>{{ commande.dateExpedition | date: 'dd/MM/yyyy' }}</td>
-        <td>
-          <span class="status-pill" [ngClass]="getStatusClass(commande.statut)">
-            {{ mapStatut(commande.statut) }}
-          </span>
-        </td>
-        <td>
-          <button
-              pButton
-              type="button"
-              icon="pi pi-pencil"
-              class="edit-icon-btn"
-              [disabled]="commande.statut === 'LIVRE' || commande.statut === 'TERMINE' || commande.statut === 'ENVOYE'"
-              (click)="openEditModal(commande)"
-              pTooltip="{{ commande.statut === 'LIVRE' || commande.statut === 'TERMINE' || commande.statut === 'ENVOYE' 
-                ? 'Modification impossible (déjà envoyé, livré ou terminé)' 
-                : 'Modifier le bon de commande' }}"
-              tooltipPosition="top"
-            ></button>
+      <!-- Colonnes de dates avec tri -->
+      <th pSortableColumn="dateCommande">
+        Date Commande
+        <i class="pi pi-sort" style="margin-left: 0.5rem;"></i>
+      </th>
+      <th pSortableColumn="dateLivraison">
+        Date Livraison
+        <i class="pi pi-sort" style="margin-left: 0.5rem;"></i>
+      </th>
+      <th pSortableColumn="dateExpedition">
+        Date Expedition
+        <i class="pi pi-sort" style="margin-left: 0.5rem;"></i>
+      </th>
+
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+  </ng-template>
+
+  <ng-template pTemplate="body" let-commande>
+    <tr>
+      <td>{{ commande.numeroBonCommande }}</td>
+      <td>{{ commande.fournisseur.nom }} {{ commande.fournisseur.prenom }}</td>
+      <td>
+        <strong>
+         {{ getTotalBonCommande(commande) | number:'1.2-2' }} $
+
+        </strong>
+      </td>
 
 
-          <button
-            pButton
-            icon="pi pi-download"
-            class="p-button-rounded p-button-success p-button-text"
-            (click)="downloadCommande(commande)"
-            pTooltip="Télécharger le bon de commande"
-          ></button>
+      <td class="date-commande">{{ commande.dateCommande | date:'dd/MM/yyyy' }}</td>
+      <td class="date-livraison">{{ commande.dateLivraison | date:'dd/MM/yyyy' }}</td>
+      <td class="date-expedition">{{ commande.dateExpedition | date:'dd/MM/yyyy' }}</td>
 
-          <!--<button
-            pButton
-            icon="pi pi-eye"
-            class="p-button-rounded p-button-info p-button-text"
-            (click)="voirDetailsCommande(commande)"
-            pTooltip="Voir détails"
-          ></button>-->
+      <td>
+        <span class="status-pill" [ngClass]="getStatusClass(commande.statut)">
+          {{ mapStatut(commande.statut) }}
+        </span>
+      </td>
+      <td>
+        <!-- Actions -->
+        <button
+          pButton
+          type="button"
+          icon="pi pi-pencil"
+          class="edit-icon-btn"
+          [disabled]="commande.statut === 'LIVRE' || commande.statut === 'TERMINE' || commande.statut === 'ENVOYE'"
+          (click)="openEditModal(commande)"
+          pTooltip="{{ commande.statut === 'LIVRE' || commande.statut === 'TERMINE' || commande.statut === 'ENVOYE' 
+            ? 'Modification impossible (déjà envoyé, livré ou terminé)' 
+            : 'Modifier le bon de commande' }}"
+          tooltipPosition="top"
+        ></button>
 
-          <button
-            pButton
-            icon="pi pi-trash"
-            class="p-button-rounded p-button-danger p-button-text"
-            (click)="archiveCommande(commande)"
-            pTooltip="Archiver"
-          ></button>
-        </td>
-      </tr>
-    </ng-template>
-  </p-table>
-</div>
+        <button
+          pButton
+          icon="pi pi-download"
+          class="p-button-rounded p-button-success p-button-text"
+          (click)="downloadCommande(commande)"
+          pTooltip="Télécharger le bon de commande"
+        ></button>
+
+        <button
+          pButton
+          icon="pi pi-trash"
+          class="p-button-rounded p-button-danger p-button-text"
+          (click)="archiveCommande(commande)"
+          pTooltip="Archiver"
+        ></button>
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
 
 
 <!-- Modal d'ajout -->
@@ -655,6 +668,20 @@ import { Article } from '@/models/Article';
         .pi-search {
           pointer-events: none; /* icône non cliquable */
         }
+        .date-commande {
+          color: #3498db; /* bleu pour Date Commande */
+          font-weight: 600;
+        }
+
+        .date-livraison {
+          color: #27ae60; /* vert pour Date Livraison */
+          font-weight: 600;
+        }
+
+        .date-expedition {
+          color: #d38507; /* orange pour Date Expédition */
+          font-weight: 600;
+        }
 
 
     `
@@ -734,6 +761,20 @@ export class BonDeCommande implements OnInit {
   const articlesArray = this.editForm.get('articles') as FormArray;
   this.filteredArticles = articlesArray.controls.map(() => []);
 }
+getTotalBonCommande(commande: any): number {
+  let total = 0;
+
+  if (commande.articles && commande.articles.length > 0) {
+    commande.articles.forEach((a: any) => {
+      const quantite = a.quantite ?? 0;
+      const prixAchat = a.article?.prixAchat ?? 0;
+      total += prixAchat * quantite;
+    });
+  }
+
+  return total;
+}
+
 updateStatutsAutomatiquement() {
   const today = new Date();
 
@@ -863,10 +904,35 @@ submitAdd() {
 
   const formValue = this.addForm.getRawValue(); // inclut champs disabled
 
+  // Extraire les articles depuis le formArray
   const articlesForBackend = this.articlesFormArrayAdd.controls.map(ctrl => ({
     articleId: ctrl.get('articleId')?.value,
-    quantite: ctrl.get('quantite')?.value
+    quantite: ctrl.get('quantite')?.value,
+    code: ctrl.get('code')?.value?.trim().toLowerCase() // si tu as le code dans le formArray
   }));
+
+  // 🔴 Vérification doublons : articleId ou code
+  const seenArticleIds = new Set<number>();
+  const seenCodes = new Set<string>();
+  let duplicateFound = false;
+
+  for (const art of articlesForBackend) {
+    if (seenArticleIds.has(art.articleId) || (art.code && seenCodes.has(art.code))) {
+      duplicateFound = true;
+      break;
+    }
+    seenArticleIds.add(art.articleId);
+    if (art.code) seenCodes.add(art.code);
+  }
+
+  if (duplicateFound) {
+    this.messageService.add({
+      severity: 'error',
+      summary: 'Erreur',
+      detail: 'Deux articles avec le même code ou identifiant ont été ajoutés. Veuillez vérifier.'
+    });
+    return; // stop submit
+  }
 
   const newBonCommande = {
     numeroBonCommande: formValue.numeroBonCommande,
@@ -901,6 +967,7 @@ submitAdd() {
     }
   });
 }
+
 
 // FormArray pour articles
 get articlesFormArrayAdd() {
@@ -1224,6 +1291,7 @@ submitEdit() {
           detail: 'Impossible de modifier le bon de commande.'
         });
       }
+    
     });
 }
 
@@ -1609,9 +1677,5 @@ checkDatesAndSendEmail(bonCommande: any) {
     });
   }
 }
-
-
-
-
 
 }

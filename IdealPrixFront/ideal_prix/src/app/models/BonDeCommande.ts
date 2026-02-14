@@ -23,6 +23,7 @@ export interface BonDeCommande {
   dateLivraison?: string;
   dateExpedition?: string;
   articles?: BonDeCommandeArticle[];
+  
 }
 export interface ArticleCommande {
   id: number;

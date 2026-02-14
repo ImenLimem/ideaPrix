@@ -17,6 +17,8 @@ public class BonDeCommandeDetailsDTO {
     private LocalDateTime dateLivraison;
     private LocalDateTime dateExpedition;
 
+
+
     private List<BonDeCommandeArticleDTO> articles; // liste des articles + quantité
 
     // Getters et Setters
@@ -51,11 +53,16 @@ public class BonDeCommandeDetailsDTO {
     public static class BonDeCommandeArticleDTO {
         private Article article;
         private int quantite;
+        private String devise;
 
         public Article getArticle() { return article; }
         public void setArticle(Article article) { this.article = article; }
 
         public int getQuantite() { return quantite; }
         public void setQuantite(int quantite) { this.quantite = quantite; }
+        public String getDevise() { return devise; }      // ✅
+        public void setDevise(String devise) { this.devise = devise; }  // ✅
     }
+
+
 }

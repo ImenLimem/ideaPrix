@@ -86,7 +86,7 @@ interface expandedRows {
 
                     <button
                         pButton
-                        label="Exporter"
+                        label="Exporter PDF"
                         icon="pi pi-file-excel"
                         class="p-button-success"
                         (click)="exportToExcel()">
@@ -105,8 +105,7 @@ interface expandedRows {
         <!-- HEADER -->
         <ng-template pTemplate="header">
             <tr>
-                    <th>Nom</th>
-                <th>Prénom</th>
+                    <th>Nom & Prénom</th>
                 <th>Pays</th>
                 <th>Téléphone</th>
                 <th>Email</th>
@@ -118,8 +117,7 @@ interface expandedRows {
         <!-- BODY -->
         <ng-template pTemplate="body" let-fournisseur>
                 <tr>
-                    <td>{{ fournisseur.nom }}</td>
-                    <td>{{ fournisseur.prenom }}</td>
+                    <td>{{ fournisseur.nom }} {{ fournisseur.prenom }}</td>
                     <td>
                         <div class="flex items-center gap-2">
                             <img
@@ -183,14 +181,14 @@ interface expandedRows {
                             </button>
 
                             <!-- Supprimer (trash) -->
-                            <button
+                            <!--<button
                                 pButton
                                 icon="pi pi-trash"
                                 class="p-button-rounded p-button-text p-button-danger"
                                 pTooltip="Supprimer fournisseur"
                                 tooltipPosition="top"
                                 (click)="openDeleteFournisseurDialog(fournisseur)">
-                            </button>
+                            </button>-->
                         </div>
                         </td>
                 </tr>

@@ -25,9 +25,10 @@ export class AppMenu {
                 label: 'UI Components',
                 items: [
                   
-                    { label: 'Articles', icon: 'pi pi-fw pi-table', routerLink: ['/uikit/articles'] },
-                    { label: 'Fournisseurs', icon: 'pi pi-fw pi-table', routerLink: ['/uikit/fournisseurs'] },
-                    { label: 'Bons De Commande', icon: 'pi pi-fw pi-table', routerLink: ['/uikit/bonsDeCommande'] },
+                    { label: 'Articles', icon: 'pi pi-fw pi-box', routerLink: ['/uikit/articles'] },
+                    { label: 'Fournisseurs', icon: 'pi pi-fw pi-users', routerLink: ['/uikit/fournisseurs'] },
+                    { label: 'Bons De Commande', icon: 'pi pi-fw pi-shopping-cart', routerLink: ['/uikit/bonsDeCommande'] },
+
                     
                 ]
             },

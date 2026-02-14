@@ -24,7 +24,9 @@ public class BonDeCommandeScheduler {
     }
 
     // Planification tous les jours à minuit (00:00)
-    @Scheduled(cron = "0 0 0 * * ?")
+    @Scheduled(cron = "0 0 0 * * ?", zone = "Africa/Tunis")
+
+
     public void envoyerEmailsAutomatiques() {
         LocalDate today = LocalDate.now(ZoneId.systemDefault()); // date actuelle
         System.out.println("Vérification des bons de commande pour la date : " + today);
@@ -70,7 +72,7 @@ public class BonDeCommandeScheduler {
                 "<tr><td style='border: 1px solid #ccc; padding: 8px;'>Statut</td><td style='border: 1px solid #ccc; padding: 8px;'>" + (bc.getStatut() != null ? bc.getStatut() : "N/A") + "</td></tr>" +
                 "</table>" +
                 "<p>Merci de prendre les mesures nécessaires et de suivre cette commande.</p>" +
-                "<p>Cordialement,<br>Service de Gestion des Commandes</p>" +
+
                 "</body></html>";
 
         emailService.envoyerEmailHTML(defaultDestinataire, sujet, corps);

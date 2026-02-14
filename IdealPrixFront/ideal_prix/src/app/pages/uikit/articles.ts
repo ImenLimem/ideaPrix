@@ -29,6 +29,8 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { CustomerService } from '@/service/customer.service';
 import { ProductService } from '@/service/product.service';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 
 interface expandedRows {
@@ -102,6 +104,15 @@ interface expandedRows {
 
                 <button
                     pButton
+                    label="Télécharger liste des prix"
+                    icon="pi pi-file-pdf"
+                    class="p-button-danger"
+                    (click)="exportToPDF()">
+                </button>
+
+
+                <button
+                    pButton
                     label="Exporter Excel"
                     icon="pi pi-file-excel"
                     class="p-button-success"
@@ -126,7 +137,10 @@ interface expandedRows {
            <tr>
                 <td>{{ article.nom }}</td>
                 <td>{{ article.code }}</td>
-                <td>{{ article.prixAchat }}</td>
+                <td>
+                    {{ article.prixAchat | number:'1.2-2' }}
+                    {{ article.devise }}
+                </td>
               <td>
                    <p-tag
                         [value]="article.famille"
@@ -141,7 +155,10 @@ interface expandedRows {
                 </td>
 
 
-                <td>{{ article.prixVente }}</td>
+                <td>
+                    {{ article.prixVente | number:'1.2-2' }}
+                    {{ article.devise }}
+                </td>
                 <td>
                     <img *ngIf="article.image" [src]="getImageUrl(article.image)" alt="Image de {{ article.nom }}" style="width: 60px; height: 60px; object-fit: contain;" />
                 </td>
@@ -157,14 +174,14 @@ interface expandedRows {
                         (click)="openEditArticleDialog(article)">
                     </button>
 
-                    <button
+                    <!--<button
                         pButton
                         icon="pi pi-trash"
                         class="p-button-rounded p-button-text p-button-danger"
                         pTooltip="Supprimer article"
                         tooltipPosition="top"
                         (click)="openDeleteArticleDialog(article)">
-                    </button>
+                    </button>-->
                 </td>
             </tr>
 
@@ -826,7 +843,7 @@ onImageSelected(event: any) {
 
 
 
-  deleteArticle(id: number) {
+  /*deleteArticle(id: number) {
     this.articleService.deleteArticle(id).subscribe(
       () => {
         this.articles = this.articles.filter((article) => article.id !== id); // Supprimer l'article de la liste
@@ -845,7 +862,7 @@ onImageSelected(event: any) {
         console.error("Erreur lors de la suppression de l'article", error);
       }
     );
-  }
+  }*/
 
  /* getImageUrl(imagePath: string): string {
     return `http://localhost:8080/articles/images/${imagePath}`;
@@ -1125,7 +1142,36 @@ familleColors: string[] = [
     '#E0F2FE', // sky clair
 ];
 
+exportToPDF() {
+  const doc = new jsPDF();
 
+  // Titre du PDF
+  doc.setFontSize(18);
+  doc.text('Liste des Articles avec Prix', 14, 22);
+
+  // Préparer les données
+  const rows = this.filteredArticles.map(article => [
+    article.code,
+    article.nom,
+    article.prixAchat.toFixed(2) + ' ' ,
+    article.prixVente.toFixed(2) + ' ' ,
+    
+  ]);
+
+  const columns = ['Code', 'Nom',  'Prix Achat', 'Prix Vente'];
+
+  // Générer le tableau avec autoTable
+  autoTable(doc, {
+    head: [columns],
+    body: rows,
+    startY: 30,
+    theme: 'grid',
+    headStyles: { fillColor: [220, 53, 69], textColor: 255 },
+    styles: { fontSize: 10 }
+  });
+
+  doc.save('liste_articles.pdf');
+}
 
 
 
