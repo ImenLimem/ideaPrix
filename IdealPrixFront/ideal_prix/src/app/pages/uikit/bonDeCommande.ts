@@ -136,9 +136,10 @@ import { Article } from '@/models/Article';
       <td class="date-expedition">{{ commande.dateExpedition | date:'dd/MM/yyyy' }}</td>
 
       <td>
-        <span class="status-pill" [ngClass]="getStatusClass(commande.statut)">
-          {{ mapStatut(commande.statut) }}
+       <span class="status-pill" [ngClass]="getStatusClass(updateStatutAffichage(commande))">
+          {{ mapStatut(updateStatutAffichage(commande)) }}
         </span>
+
       </td>
       <td>
         <!-- Actions -->
@@ -240,14 +241,32 @@ import { Article } from '@/models/Article';
         <input type="date" class="w-full p-2 border rounded" formControlName="dateLivraison" />
       </div>
     </div>
-
+    
     <!-- Articles -->
-    <div class="flex justify-between items-center mb-2">
-      <h3 class="text-lg font-semibold">Articles</h3>
-      <button pButton type="button" label="Ajouter un article" icon="pi pi-plus"
-              class="p-button-sm p-button-primary"
-              (click)="addEmptyArticleAdd()"></button>
-    </div>
+   <div class="flex justify-between items-center mb-2 gap-4">
+        <h3 class="text-lg font-semibold">Articles</h3>
+
+        <!-- Cours du Dollar -->
+        <div class="flex flex-col w-40">
+          <label class="font-semibold">Cours du Dollar (DT)</label>
+          <input
+            pInputText
+            type="number"
+            formControlName="prixDollar"
+            class="w-full"
+            min="0"
+            step="0.01"
+            (input)="calculateTotalTtc()"
+            placeholder="Cours du jour"
+          />
+        </div>
+
+        <!-- Bouton Ajouter un article -->
+        <button pButton type="button" label="Ajouter un article" icon="pi pi-plus"
+                class="p-button-sm p-button-primary"
+                (click)="addEmptyArticleAdd()"></button>
+      </div>
+
 
     <table class="p-datatable w-full border border-gray-300 rounded">
       <thead class="bg-gray-100">
@@ -295,13 +314,26 @@ import { Article } from '@/models/Article';
 
           <td class="border p-2 flex gap-2">
             <button pButton type="button" icon="pi pi-trash" class="p-button-sm p-button-danger"
-                    (click)="articlesFormArrayAdd.removeAt(i); filteredArticlesAdd.splice(i,1)"></button>
+                    (click)="removeArticleAdd(i)"></button>
           </td>
         </tr>
       </tbody>
     </table>
 
-    <!-- Boutons -->
+  
+    <!-- Total TTC -->
+      <div class="flex justify-end mt-4">
+        <div class="w-64">
+          <label class="font-semibold">Total TTC</label>
+          <input
+            pInputText
+            formControlName="totalTtc"
+            class="w-full font-bold text-right"
+            readonly
+          />
+        </div>
+      </div>
+  <!-- Boutons -->
     <div class="flex justify-end gap-3 mt-6">
       <button pButton label="Annuler" class="p-button-secondary" type="button" (click)="visibleAdd=false"></button>
       <button pButton label="Enregistrer" class="p-button-success" type="submit"></button>
@@ -316,10 +348,12 @@ import { Article } from '@/models/Article';
      <p-dialog
   header="Modification du Bon de Commande"
   [(visible)]="visible"
+  (onShow)="calculateEditTotalTtc()"
   [modal]="true"
   [closable]="true"
   [style]="{ width: '900px' }"
 >
+
 
   <form [formGroup]="editForm" (ngSubmit)="submitEdit()">
 
@@ -498,7 +532,18 @@ import { Article } from '@/models/Article';
     </tr>
 
   </tbody>
-</table>
+    </table>
+      <div class="flex justify-end mt-4">
+      <div class="w-64">
+        <label class="font-semibold">Total TTC</label>
+        <input
+          pInputText
+          formControlName="totalTtc"
+          class="w-full font-bold text-right"
+          readonly
+        />
+      </div>
+    </div>
 
     <!-- Boutons -->
     <div class="flex justify-end gap-3 mt-6">
@@ -744,7 +789,10 @@ export class BonDeCommande implements OnInit {
     this.bonDeCommandes = data;
 
     // 👉 APRES que les données arrivent
-    this.updateStatutsAutomatiquement();
+    this.bonDeCommandeService.getAllBonDeCommandes().subscribe(data => {
+    this.bonDeCommandes = data;
+    this.updateStatutsAutomatiquement(); // ✅ ici c'est correct
+});
   });
 
   // Initialiser le formulaire
@@ -754,6 +802,7 @@ export class BonDeCommande implements OnInit {
     statut: [this.bonCommande?.statut || '', Validators.required],
     dateExpedition: [this.bonCommande?.dateExpedition || null, Validators.required],
     dateLivraison: [this.bonCommande?.dateLivraison || null, Validators.required],
+    totalTtc: [0],
     articles: this.fb.array([])
   });
 
@@ -777,16 +826,21 @@ getTotalBonCommande(commande: any): number {
 
 updateStatutsAutomatiquement() {
   const today = new Date();
+  today.setHours(0, 0, 0, 0); // 🔥 ignore l'heure
 
   this.bonDeCommandes.forEach(commande => {
+    const dateExp = new Date(commande.dateExpedition);
+    dateExp.setHours(0, 0, 0, 0);
+
+    const dateLiv = new Date(commande.dateLivraison);
+    dateLiv.setHours(0, 0, 0, 0);
+
     let nouveauStatut: string | null = null;
 
-    const dateExp = new Date(commande.dateExpedition);
-    const dateLiv = new Date(commande.dateLivraison);
-
-    if (today >= dateLiv) {
+    // Si dateLiv = aujourd'hui ou passée
+    if (today.getTime() >= dateLiv.getTime()) {
       nouveauStatut = 'LIVRE';
-    } else if (today >= dateExp) {
+    } else if (today.getTime() >= dateExp.getTime()) {
       nouveauStatut = 'ENVOYE';
     }
 
@@ -795,8 +849,8 @@ updateStatutsAutomatiquement() {
         description: commande.description || '',
         statut: nouveauStatut,
         fournisseurId: commande.fournisseur?.id || null,
-        dateExpedition: commande.dateExpedition ? new Date(commande.dateExpedition) : null,
-        dateLivraison: commande.dateLivraison ? new Date(commande.dateLivraison) : null,
+        dateExpedition: commande.dateExpedition ? new Date(commande.dateExpedition).toISOString() : null,
+        dateLivraison: commande.dateLivraison ? new Date(commande.dateLivraison).toISOString() : null,
         articles: commande.articles?.map((a: any) => ({
           articleId: a.article.id,
           quantite: a.quantite
@@ -806,16 +860,28 @@ updateStatutsAutomatiquement() {
       this.bonDeCommandeService.modifierBonDeCommande(commande.id, updateRequest)
         .subscribe({
           next: (updated) => {
-            console.log(`Commande ${commande.id} mise à jour`);
-            commande.statut = nouveauStatut;
+            console.log(`Commande ${commande.id} mise à jour au statut ${nouveauStatut}`);
+            commande.statut = nouveauStatut; // 🔥 mettre à jour localement
           },
           error: (err) => console.error('Erreur mise à jour:', err)
         });
     }
   });
 }
+updateStatutAffichage(commande: any): string {
+  const today = new Date();
+  today.setHours(0,0,0,0);
 
+  const dateLiv = new Date(commande.dateLivraison);
+  dateLiv.setHours(0,0,0,0);
 
+  const dateExp = new Date(commande.dateExpedition);
+  dateExp.setHours(0,0,0,0);
+
+  if (today.getTime() >= dateLiv.getTime()) return 'LIVRE';
+  if (today.getTime() >= dateExp.getTime()) return 'ENVOYE';
+  return commande.statut;
+}
 
 
 isSameDay(date1: Date, date2: Date): boolean {
@@ -834,7 +900,7 @@ loadFournisseurs() {
     console.log('Fournisseurs:', this.fournisseursOptions);
   });
 }
-  onSearch(event: Event) {
+onSearch(event: Event) {
   const input = event.target as HTMLInputElement | null;
   this.searchQuery = input?.value ?? '';
 }
@@ -860,19 +926,20 @@ initAddForm() {
     fournisseurId: [null, Validators.required],
     description: ['', Validators.required],
     statut: ['EN_ATTENTE', Validators.required],
-    dateCommande: [{ value: todayStr, disabled: true }], // readonly
+    dateCommande: [{ value: todayStr, disabled: true }],
     dateExpedition: [todayStr, Validators.required],
     dateLivraison: [todayStr, Validators.required],
+    totalTtc: [{ value: 0, disabled: true }], // ✅ nouveau champ
     articles: this.fb.array([])
   });
 
-  this.modalArticlesAdd = [];
   this.filteredArticlesAdd = [];
 }
 
-
 openAddCommandeDialog() {
   this.visibleAdd = true;
+  this.addForm.get('totalTtc')?.setValue('0.00');
+
 
   // Réinitialiser le formulaire avec des dates par défaut
   const todayStr = this.formatDateToInput(new Date());
@@ -942,6 +1009,7 @@ submitAdd() {
     dateCommande: new Date().toISOString(), // date actuelle pour la création
     dateExpedition: formValue.dateExpedition ? new Date(formValue.dateExpedition).toISOString() : null,
     dateLivraison: formValue.dateLivraison ? new Date(formValue.dateLivraison).toISOString() : null,
+    totalTtc: Number(formValue.totalTtc),
     articles: articlesForBackend
   };
 
@@ -968,6 +1036,23 @@ submitAdd() {
   });
 }
 
+calculateTotalTtc() {
+  let total = 0;
+
+  this.articlesFormArrayAdd.controls.forEach(ctrl => {
+    const prix = Number(ctrl.get('prixAchat')?.value) || 0;
+    const quantite = Number(ctrl.get('quantite')?.value) || 0;
+    total += prix * quantite;
+  });
+
+  this.addForm.get('totalTtc')?.setValue(total.toFixed(2), { emitEvent: false });
+}
+removeArticleAdd(index: number) {
+  this.articlesFormArrayAdd.removeAt(index);
+  this.filteredArticlesAdd.splice(index, 1);
+  this.calculateTotalTtc(); // ✅ recalcul
+}
+
 
 // FormArray pour articles
 get articlesFormArrayAdd() {
@@ -975,20 +1060,28 @@ get articlesFormArrayAdd() {
 }
 // Ajouter un article vide
 addEmptyArticleAdd() {
-  const newArticle = this.fb.group({
+  const group = this.fb.group({
     articleObj: [null, Validators.required],
+    articleId: [null],
     code: [''],
     nom: [''],
     prixAchat: [0],
-    quantite: [1, [Validators.required, Validators.min(1)]],
-    oldQuantite: [1],
-    editing: [true],
-    articleId: [null]
+    quantite: [1, Validators.required]
   });
 
-  this.articlesFormArrayAdd.insert(0, newArticle);
-  this.filteredArticlesAdd.unshift([]);
+  // Recalcul automatique quand quantité change
+  group.get('quantite')?.valueChanges.subscribe(() => {
+    this.calculateTotalTtc();
+  });
+
+  // ✅ Insérer en PREMIÈRE position
+  this.articlesFormArrayAdd.insert(0, group);
+
+  // Important : garder filteredArticles synchronisé
+  this.filteredArticlesAdd.splice(0, 0, []);
 }
+
+
 // Convertit une date (string ou Date) en format SQL complet
 formatDateToSQL(date: string | Date | null): string | null {
   if (!date) return null;
@@ -1028,6 +1121,9 @@ onArticleSelected(event: any, index: number) {
     quantite: 1
   });
 
+  // ✅ recalcul du total
+  this.calculateEditTotalTtc();
+
   console.log('Article sélectionné (edit):', article);
   console.log('FormGroup après patch:', formGroup.value);
 }
@@ -1036,8 +1132,8 @@ onArticleSelected(event: any, index: number) {
 // Sélection article AutoComplete
 onArticleSelectedAdd(event: any, index: number) {
   const article = event.value;
-  console.log("articleeee",article)
   const formGroup = this.articlesFormArrayAdd.at(index) as FormGroup;
+
   formGroup.patchValue({
     articleObj: article,
     code: article.code,
@@ -1046,8 +1142,10 @@ onArticleSelectedAdd(event: any, index: number) {
     articleId: article.id,
     quantite: 1
   });
-  console.log("formGroup",formGroup)
+
+  this.calculateTotalTtc(); // ✅ recalcul automatique
 }
+
  
 filterArticlesAdd(event: any, index: number) {
   const query = event.query.toLowerCase();
@@ -1086,12 +1184,16 @@ generateBonCommandeNumber(): string {
 
 
   filteredBonDeCommandes() {
-    // Filter the commandes based on the search query
-    return this.bonDeCommandes.filter(commande => 
-      commande.fournisseur.nom.toLowerCase().includes(this.searchQuery.toLowerCase()) || 
-      commande.numeroBonCommande.toLowerCase().includes(this.searchQuery.toLowerCase())
-    );
-  }
+  return this.bonDeCommandes
+    .filter(cmd => cmd.statut !== 'ARCHIVE')  // <-- exclut les commandes archivées
+    .filter(cmd => {
+      // Si vous avez déjà un champ de recherche
+      return this.searchQuery
+        ? cmd.numeroBonCommande.toLowerCase().includes(this.searchQuery.toLowerCase())
+        : true;
+    });
+}
+
 
   mapStatut(statut: string): string {
     const statutMap: { [key: string]: string } = {
@@ -1143,15 +1245,9 @@ generateBonCommandeNumber(): string {
     }
   }
 
-
-
-
   deleteCommande(commande: any) {
     console.log('Delete commande:', commande);
   }
-
-  
-
 
 // Fonction utilitaire pour convertir Date -> yyyy-MM-dd
 formatDateToInput(date: Date | string | null): string {
@@ -1169,12 +1265,12 @@ get articlesFormArray() {
 
   // Ouvre le modal pour éditer
 openEditModal(commande: any) {
+
   this.selectedCommande = commande;
 
   const today = new Date();
   this.dateCommandeDisplay = today;
 
-  // Initialiser le formulaire
   this.editForm = this.fb.group({
     fournisseurId: [commande.fournisseur?.id || null, Validators.required],
     description: [commande.description, Validators.required],
@@ -1188,28 +1284,35 @@ openEditModal(commande: any) {
       commande.dateLivraison ? this.formatDateToInput(commande.dateLivraison) : null,
       Validators.required
     ],
+
+    totalTtc: [0],   // AJOUT IMPORTANT
+
     articles: this.fb.array([])
   });
 
-  // Copier les articles dans le tableau temporaire
-  this.modalArticles = commande.articles.map((a: any) => ({ ...a }));
-
-  // Créer le FormArray
   const articlesFormArray = this.editForm.get('articles') as FormArray;
-  this.modalArticles.forEach(a => {
-    articlesFormArray.push(
-      this.fb.group({
-        articleObj: [a.article || null, Validators.required], // <-- ajoute cette ligne
-        code: [a.article.code || ''],
-        nom: [a.article.nom || ''],
-        prixAchat: [a.article.prixAchat || 0],
-        quantite: [a.quantite || 0, [Validators.required, Validators.min(1)]],
-        oldQuantite: [a.quantite || 0],
-        editing: [false],
-        articleId: [a.article.id || null]
-      })
-    );
+
+  commande.articles.forEach((a: any) => {
+    const group = this.fb.group({
+      articleObj: [a.article || null, Validators.required],
+      code: [a.article.code || ''],
+      nom: [a.article.nom || ''],
+      prixAchat: [a.article.prixAchat || 0],
+      quantite: [a.quantite || 1, [Validators.required, Validators.min(1)]],
+      oldQuantite: [a.quantite || 1],
+      editing: [false],
+      articleId: [a.article.id || null]
+    });
+
+    group.get('quantite')?.valueChanges.subscribe(() => {
+      this.calculateEditTotalTtc();
+    });
+
+    articlesFormArray.push(group);
   });
+
+  // 🔥 calcul initial
+  this.calculateEditTotalTtc();
 
   this.visible = true;
 }
@@ -1266,6 +1369,8 @@ submitEdit() {
     statut: this.editForm.get('statut')?.value,
     dateExpedition: this.editForm.get('dateExpedition')?.value,
     dateLivraison: this.editForm.get('dateLivraison')?.value,
+    //totalTtc: this.editForm.getRawValue().totalTtc,
+    totalTtc: Number(this.editForm.get('totalTtc')?.value),
     articles: articlesForBackend
   };
 
@@ -1295,6 +1400,19 @@ submitEdit() {
     });
 }
 
+calculateEditTotalTtc() {
+  let total = 0;
+
+  const articlesArray = this.editForm.get('articles') as FormArray;
+
+  articlesArray.controls.forEach(ctrl => {
+    const prix = Number(ctrl.get('prixAchat')?.value) || 0;
+    const quantite = Number(ctrl.get('quantite')?.value) || 0;
+    total += prix * quantite;
+  });
+
+  this.editForm.get('totalTtc')?.setValue(total.toFixed(2));
+}
 
   // Gestion des checkboxes articles
   onArticleChange(event: any) {
@@ -1313,16 +1431,12 @@ submitEdit() {
 
 removeArticle(index: number) {
   const articlesFormArray = this.editForm.get('articles') as FormArray;
-
   if (index > -1 && index < articlesFormArray.length) {
-    // Supprimer du FormArray
     articlesFormArray.removeAt(index);
-
-    // Supprimer du tableau temporaire modalArticles
     this.modalArticles.splice(index, 1);
+    this.calculateEditTotalTtc(); // 🔥 recalcul immédiat
   }
 }
-
 enableEdit(item: AbstractControl) {
   // sauvegarder la quantité AVANT modification
   item.get('oldQuantite')?.setValue(item.get('quantite')?.value);
@@ -1393,26 +1507,24 @@ formatDateToDDMMYYYY(date: Date | string | null): string {
 }
 addEmptyArticle() {
   const articlesFormArray = this.editForm.get('articles') as FormArray;
-
-  // Créer un FormGroup vide pour le nouvel article
-  const newArticle = this.fb.group({
-    articleObj: [null, Validators.required], // obligatoire pour AutoComplete
+  const group = this.fb.group({
+    articleObj: [null, Validators.required],
     code: [''],
     nom: [''],
     prixAchat: [0],
-    quantite: [0, [Validators.required, Validators.min(1)]], // <-- valeur par défaut 0, minimum 1
-    oldQuantite: [0],
+    quantite: [1, [Validators.required, Validators.min(1)]],
+    oldQuantite: [1],
     editing: [true],
     articleId: [null]
   });
 
-  // Ajouter l'article au début du FormArray
-  articlesFormArray.insert(0, newArticle);
+  group.get('quantite')?.valueChanges.subscribe(() => {
+    this.calculateEditTotalTtc();
+  });
 
-  // Ajouter un tableau vide pour les suggestions filteredArticles
-  this.filteredArticles.unshift([]);
+  articlesFormArray.push(group);
+  this.calculateEditTotalTtc(); // 🔥 recalcul après ajout
 }
-
 
 
 // Appelé à chaque modification du champ code/nom

@@ -36,7 +36,8 @@ public class BonDeCommandeController {
                 bonDeCommandeRequest.getDescription(),
                 bonDeCommandeRequest.getStatut(),
                 bonDeCommandeRequest.getDateExpedition(),
-                bonDeCommandeRequest.getDateLivraison()
+                bonDeCommandeRequest.getDateLivraison(),
+                bonDeCommandeRequest.getTotalTtc()
         );
     }
 

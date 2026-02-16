@@ -16,6 +16,7 @@ public class BonDeCommandeDetailsDTO {
     private LocalDateTime dateCommande;
     private LocalDateTime dateLivraison;
     private LocalDateTime dateExpedition;
+    private Double totalTtc;
 
 
 
@@ -45,6 +46,13 @@ public class BonDeCommandeDetailsDTO {
 
     public LocalDateTime getDateExpedition() { return dateExpedition; }
     public void setDateExpedition(LocalDateTime dateExpedition) { this.dateExpedition = dateExpedition; }
+    public Double getTotalTtc() {
+        return totalTtc;
+    }
+
+    public void setTotalTtc(Double totalTtc) {
+        this.totalTtc = totalTtc;
+    }
 
     public List<BonDeCommandeArticleDTO> getArticles() { return articles; }
     public void setArticles(List<BonDeCommandeArticleDTO> articles) { this.articles = articles; }
@@ -61,7 +69,8 @@ public class BonDeCommandeDetailsDTO {
         public int getQuantite() { return quantite; }
         public void setQuantite(int quantite) { this.quantite = quantite; }
         public String getDevise() { return devise; }      // ✅
-        public void setDevise(String devise) { this.devise = devise; }  // ✅
+        public void setDevise(String devise) { this.devise = devise; }
+        // ✅
     }
 
 

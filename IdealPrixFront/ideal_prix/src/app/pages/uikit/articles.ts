@@ -137,9 +137,8 @@ interface expandedRows {
            <tr>
                 <td>{{ article.nom }}</td>
                 <td>{{ article.code }}</td>
-                <td>
-                    {{ article.prixAchat | number:'1.2-2' }}
-                    {{ article.devise }}
+              <td>
+                    <strong>{{ article.prixAchat | number:'1.2-2' }} $</strong>
                 </td>
               <td>
                    <p-tag
@@ -156,8 +155,8 @@ interface expandedRows {
 
 
                 <td>
-                    {{ article.prixVente | number:'1.2-2' }}
-                    {{ article.devise }}
+                    <strong>{{ article.prixVente | number:'1.2-2' }} $</strong>
+                    
                 </td>
                 <td>
                     <img *ngIf="article.image" [src]="getImageUrl(article.image)" alt="Image de {{ article.nom }}" style="width: 60px; height: 60px; object-fit: contain;" />
@@ -631,7 +630,7 @@ export class Articles implements OnInit {
   selectedImage: File | string | null = null;
 
 
-  ngOnInit(): void {
+ngOnInit(): void {
     console.log('ngOnInit Articles');
     this.loadArticles();
     this.loadFournisseurs();
@@ -657,15 +656,14 @@ export class Articles implements OnInit {
     });
 }
 
-
-  loadArticles() {
+loadArticles() {
     this.articleService.getArticles().subscribe((data) => {
       this.articles = data;
       console.log("liste des articels", data )
        this.filteredArticles = [...data]; // copie
     });
   }
-  applyGlobalFilter(event: Event) {
+applyGlobalFilter(event: Event) {
   const value = (event.target as HTMLInputElement).value
     .toLowerCase()
     .trim();
@@ -683,16 +681,14 @@ export class Articles implements OnInit {
   );
 }
 
-
-  loadFournisseurs() {
+loadFournisseurs() {
     this.fournisseurService.getFournisseurs().subscribe((data) => {
       this.fournisseurs = data;
       console.log("liste des fournisseurs", data )
     });
-  }
+}
 
-
-  openAddArticleDialog() {
+openAddArticleDialog() {
     // Reset formulaire et variables
     this.articleForm.reset({
         nom: '',
@@ -711,10 +707,9 @@ export class Articles implements OnInit {
    
 }
 
-  closeAddArticleDialog() {
+closeAddArticleDialog() {
     this.displayAddArticleDialog = false;
-  }
-
+}
 
 onSubmitAdd() {
     console.log('🚀 onSubmitAdd déclenché');
@@ -800,7 +795,6 @@ isCodeDuplicate(): boolean {
     return this.articles.some(a => a.code?.toLowerCase() === code);
 }
 
-
 onImageSelected(event: any) {
     const file = event.target.files[0];
     if (file && file.type.startsWith('image/')) {
@@ -812,12 +806,12 @@ onImageSelected(event: any) {
     }
 }
 // Fonction pour supprimer l'image
-    removeImage() {
+removeImage() {
         this.selectedImage = null;
         console.log('Image supprimée');
-    }
+}
 
-    // Fonction pour déclencher le champ de sélection de fichier
+ // Fonction pour déclencher le champ de sélection de fichier
    triggerFileInput() {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -841,38 +835,9 @@ onImageSelected(event: any) {
     fileInput.click();
 }
 
-
-
-  /*deleteArticle(id: number) {
-    this.articleService.deleteArticle(id).subscribe(
-      () => {
-        this.articles = this.articles.filter((article) => article.id !== id); // Supprimer l'article de la liste
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Suppression réussie',
-            detail: `L'article "${this.selectedArticleForDeletion?.nom}" a été supprimé.`
-        });
-      },
-      (error) => {
-        this.messageService.add({
-            severity: 'error',
-            summary: 'Erreur',
-            detail: 'Impossible de supprimer l’article.'
-        });
-        console.error("Erreur lors de la suppression de l'article", error);
-      }
-    );
-  }*/
-
- /* getImageUrl(imagePath: string): string {
-    return `http://localhost:8080/articles/images/${imagePath}`;
-  }*/
-
   getImageUrl(imagePath: string | undefined): string {
   return imagePath ? `http://localhost:8080/articles/images/${imagePath}` : 'path/to/default-image.jpg';
 }
-
-
 // Ouvrir modal modification
 openEditArticleDialog(article: Article) {
   this.selectedArticle = article;
@@ -972,14 +937,9 @@ isCodeDuplicateOnEdit(): boolean {
     );
 }
 
-
-
-    closeEditArticleDialog() {
+ closeEditArticleDialog() {
         this.displayEditArticleDialog = false;
     }
-
-   
-
 
 getFournisseurNom(): string {
     console.log("nom de fournisseur", this.selectedFournisseur?.nom);
@@ -991,25 +951,7 @@ toggleFournisseurDropdown() {
     // Inverser la visibilité du dropdown à chaque clic
     this.showFournisseurDropdown = !this.showFournisseurDropdown;
 }
-/*FournisseurSelect(fournisseur: Fournisseur) {
-    console.log('Fournisseur sélectionné:', fournisseur);
-    this.selectedFournisseur = fournisseur;
 
-    // Patcher l'ID pour le backend
-    this.articleForm.patchValue({
-        fournisseurId: fournisseur.id,
-        fournisseurNom: fournisseur.nom // pour affichage
-    });
-
-    this.articleForm.get('fournisseurId')?.updateValueAndValidity();
-    this.articleForm.get('fournisseurNom')?.updateValueAndValidity();
-
-    console.log('Après patch fournisseurId:', this.articleForm.value);
-    console.log('Formulaire valide ?', this.articleForm.valid);
-
-    this.showFournisseurDropdown = false;
-}
-*/
 onFournisseurSelect(fournisseur: Fournisseur) {
     this.selectedFournisseur = fournisseur;
 
@@ -1025,9 +967,6 @@ onFournisseurSelect(fournisseur: Fournisseur) {
 
     console.log('Form après patch fournisseurId:', this.articleForm.value);
 }
-
-
-
 
 openDeleteArticleDialog(article: Article) {
     this.selectedArticleForDeletion = article; // Assigner l'article à supprimer

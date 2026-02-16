@@ -52,8 +52,10 @@ public class BonDeCommandeService {
             String description,
             StatutBonDeCommande statut,
             Date dateExpedition,
-            Date dateLivraison
-    ) {
+            Date dateLivraison,
+            Double totalTtc
+
+            ) {
 
         Fournisseur fournisseur = fournisseurRepository.findById(fournisseurId)
                 .orElseThrow(() -> new RuntimeException("Fournisseur introuvable"));
@@ -64,6 +66,7 @@ public class BonDeCommandeService {
         bon.setDescription(description);
         bon.setStatut(statut);
         bon.setDateCommande(LocalDateTime.now());
+        bon.setTotalTtc(totalTtc);
 
         // ✅ Ajouter conversion des dates
         if (dateExpedition != null) {
@@ -113,62 +116,61 @@ public class BonDeCommandeService {
 
     // Modifier un bon de commande
     public BonDeCommande modifierBonDeCommande(Long id, BonDeCommandeRequest request) {
+
         BonDeCommande bon = bonDeCommandeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Bon de commande introuvable"));
 
-        if (bon.getStatut() == StatutBonDeCommande.LIVRE || bon.getStatut() == StatutBonDeCommande.TERMINE) {
-            throw new RuntimeException("Impossible de modifier ce bon de commande, il est déjà livré ou terminé");
+        if (bon.getStatut() == StatutBonDeCommande.LIVRE
+                || bon.getStatut() == StatutBonDeCommande.TERMINE) {
+            throw new RuntimeException("Impossible de modifier ce bon de commande");
         }
 
-        // Mise à jour des champs de base
+        // 🔹 Mise à jour infos simples
         bon.setDescription(request.getDescription());
         bon.setStatut(request.getStatut());
+        bon.setTotalTtc(request.getTotalTtc());
 
-        // Mettre à jour le fournisseur
         Fournisseur fournisseur = fournisseurRepository.findById(request.getFournisseurId())
                 .orElseThrow(() -> new RuntimeException("Fournisseur introuvable"));
         bon.setFournisseur(fournisseur);
 
-        // Mettre à jour les dates
         if (request.getDateExpedition() != null)
-            bon.setDateExpedition(request.getDateExpedition().toInstant()
-                    .atZone(ZoneId.systemDefault()).toLocalDateTime());
+            bon.setDateExpedition(request.getDateExpedition()
+                    .toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
+
         if (request.getDateLivraison() != null)
-            bon.setDateLivraison(request.getDateLivraison().toInstant()
-                    .atZone(ZoneId.systemDefault()).toLocalDateTime());
+            bon.setDateLivraison(request.getDateLivraison()
+                    .toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
 
-        // Gérer les articles
-        List<BonDeCommandeArticle> existingArticles = bonDeCommandeArticleRepository.findByBonDeCommande(bon);
+        // 🔥 ÉTAPE 1 : supprimer TOUTES les anciennes lignes
+        List<BonDeCommandeArticle> anciennesLignes =
+                bonDeCommandeArticleRepository.findByBonDeCommande(bon);
 
-        // Supprimer les articles qui ne sont pas dans la liste envoyée
-        List<Long> sentArticleIds = request.getArticles().stream().map(ArticleCommande::getArticleId).toList();
-        existingArticles.stream()
-                .filter(a -> !sentArticleIds.contains(a.getArticle().getId()))
-                .forEach(a -> bonDeCommandeArticleRepository.delete(a));
+        bonDeCommandeArticleRepository.deleteAll(anciennesLignes);
 
-        // Ajouter ou mettre à jour les articles envoyés
+        // 🔥 ÉTAPE 2 : recréer uniquement celles envoyées
+        List<BonDeCommandeArticle> nouvellesLignes = new ArrayList<>();
+
         for (ArticleCommande ac : request.getArticles()) {
-            Optional<BonDeCommandeArticle> existing = existingArticles.stream()
-                    .filter(e -> e.getArticle().getId().equals(ac.getArticleId()))
-                    .findFirst();
 
             Article article = articleRepository.findById(ac.getArticleId())
                     .orElseThrow(() -> new RuntimeException("Article introuvable"));
 
-            if (existing.isPresent()) {
-                existing.get().setQuantite(ac.getQuantite());
-                bonDeCommandeArticleRepository.save(existing.get());
-            } else {
-                BonDeCommandeArticle newLine = new BonDeCommandeArticle();
-                newLine.setBonDeCommande(bon);
-                newLine.setArticle(article);
-                newLine.setQuantite(ac.getQuantite());
-                bonDeCommandeArticleRepository.save(newLine);
-            }
+            BonDeCommandeArticle ligne = new BonDeCommandeArticle();
+            ligne.setBonDeCommande(bon);
+            ligne.setArticle(article);
+            ligne.setQuantite(ac.getQuantite());
+
+            nouvellesLignes.add(ligne);
         }
+
+        bonDeCommandeArticleRepository.saveAll(nouvellesLignes);
+
+        bon.setArticles(nouvellesLignes);
 
         return bonDeCommandeRepository.save(bon);
     }
+
 
 
 
@@ -281,63 +283,69 @@ public class BonDeCommandeService {
         return dto;
     }
 
-    public BonDeCommande modifierBonDeCommandeComplet(Long id, BonDeCommandeRequest bonDeCommandeRequest) {
-        BonDeCommande bonDeCommande = bonDeCommandeRepository.findById(id)
+    public BonDeCommande modifierBonDeCommandeComplet(Long id, BonDeCommandeRequest request) {
+        BonDeCommande bon = bonDeCommandeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Bon de commande introuvable"));
 
-        // Interdire modification si déjà LIVRE ou TERMINE
-        if (bonDeCommande.getStatut() == StatutBonDeCommande.LIVRE ||
-                bonDeCommande.getStatut() == StatutBonDeCommande.TERMINE) {
+        if (bon.getStatut() == StatutBonDeCommande.LIVRE || bon.getStatut() == StatutBonDeCommande.TERMINE) {
             throw new RuntimeException("Impossible de modifier ce bon de commande, il est déjà livré ou terminé");
         }
 
-        // Mise à jour du fournisseur si fourni
-        if (bonDeCommandeRequest.getFournisseurId() != null) {
-            Fournisseur fournisseur = fournisseurRepository.findById(bonDeCommandeRequest.getFournisseurId())
+        // Mise à jour fournisseur et champs simples
+        if (request.getFournisseurId() != null) {
+            Fournisseur fournisseur = fournisseurRepository.findById(request.getFournisseurId())
                     .orElseThrow(() -> new RuntimeException("Fournisseur introuvable"));
-            bonDeCommande.setFournisseur(fournisseur);
+            bon.setFournisseur(fournisseur);
+        }
+        bon.setDescription(request.getDescription());
+        bon.setStatut(request.getStatut());
+
+        if (request.getDateExpedition() != null)
+            bon.setDateExpedition(request.getDateExpedition().toInstant()
+                    .atZone(ZoneId.systemDefault()).toLocalDateTime());
+
+        if (request.getDateLivraison() != null)
+            bon.setDateLivraison(request.getDateLivraison().toInstant()
+                    .atZone(ZoneId.systemDefault()).toLocalDateTime());
+
+        // Supprimer explicitement les articlesSupprimes
+        if (request.getArticlesSupprimes() != null) {
+            for (Long articleId : request.getArticlesSupprimes()) {
+                bonDeCommandeArticleRepository.findByBonDeCommande(bon).stream()
+                        .filter(a -> a.getArticle().getId().equals(articleId))
+                        .findFirst()
+                        .ifPresent(a -> bonDeCommandeArticleRepository.delete(a));
+            }
         }
 
-        // Mise à jour des champs simples
-        bonDeCommande.setDescription(bonDeCommandeRequest.getDescription());
-        bonDeCommande.setStatut(bonDeCommandeRequest.getStatut());
+        // Ajouter ou mettre à jour les articles envoyés
+        for (ArticleCommande ac : request.getArticles()) {
+            Optional<BonDeCommandeArticle> existing = bonDeCommandeArticleRepository.findByBonDeCommande(bon).stream()
+                    .filter(a -> a.getArticle().getId().equals(ac.getArticleId()))
+                    .findFirst();
 
-        if (bonDeCommandeRequest.getDateExpedition() != null) {
-            bonDeCommande.setDateExpedition(bonDeCommandeRequest.getDateExpedition().toInstant()
-                    .atZone(ZoneId.systemDefault())
-                    .toLocalDateTime());
-        }
+            Article article = articleRepository.findById(ac.getArticleId())
+                    .orElseThrow(() -> new RuntimeException("Article introuvable"));
 
-        if (bonDeCommandeRequest.getDateLivraison() != null) {
-            bonDeCommande.setDateLivraison(bonDeCommandeRequest.getDateLivraison().toInstant()
-                    .atZone(ZoneId.systemDefault())
-                    .toLocalDateTime());
-        }
-
-        // Mise à jour des articles et quantités
-        if (bonDeCommandeRequest.getArticles() != null && !bonDeCommandeRequest.getArticles().isEmpty()) {
-            // Supprimer les anciens articles liés à ce bon
-            bonDeCommandeArticleRepository.deleteAll(bonDeCommande.getArticles());
-
-            // Ajouter les nouveaux articles
-            List<BonDeCommandeArticle> nouvellesLignes = new ArrayList<>();
-            for (ArticleCommande ac : bonDeCommandeRequest.getArticles()) {
-                Article article = articleRepository.findById(ac.getArticleId())
-                        .orElseThrow(() -> new RuntimeException("Article introuvable"));
-
+            if (existing.isPresent()) {
+                existing.get().setQuantite(ac.getQuantite());
+                bonDeCommandeArticleRepository.save(existing.get());
+            } else {
                 BonDeCommandeArticle ligne = new BonDeCommandeArticle();
-                ligne.setBonDeCommande(bonDeCommande);
+                ligne.setBonDeCommande(bon);
                 ligne.setArticle(article);
                 ligne.setQuantite(ac.getQuantite());
-
-                nouvellesLignes.add(ligne);
+                bonDeCommandeArticleRepository.save(ligne);
             }
-
-            bonDeCommandeArticleRepository.saveAll(nouvellesLignes);
-            bonDeCommande.setArticles(nouvellesLignes);
         }
 
-        return bonDeCommandeRepository.save(bonDeCommande);
+        // Mettre à jour la liste complète
+        bon.setArticles(bonDeCommandeArticleRepository.findByBonDeCommande(bon));
+
+        return bonDeCommandeRepository.save(bon);
     }
+
+
+
 
 }

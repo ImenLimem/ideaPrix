@@ -12,7 +12,8 @@ public class BonDeCommandeRequest {
     private StatutBonDeCommande statut;
     private Date dateExpedition;
     private Date dateLivraison;
-
+    private Double totalTtc;
+    private List<Long> articlesSupprimes;
     // Getters et setters
     public Long getFournisseurId() {
         return fournisseurId;
@@ -56,4 +57,10 @@ public class BonDeCommandeRequest {
     public void setDateLivraison(Date dateLivraison) {
         this.dateLivraison = dateLivraison;
     }
+    public Double getTotalTtc() {
+        return totalTtc;
+    }
+
+    public List<Long> getArticlesSupprimes() { return articlesSupprimes; }
+    public void setArticlesSupprimes(List<Long> articlesSupprimes) { this.articlesSupprimes = articlesSupprimes; }
 }

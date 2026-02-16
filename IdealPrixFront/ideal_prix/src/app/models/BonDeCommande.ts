@@ -22,6 +22,7 @@ export interface BonDeCommande {
   dateCommande?: string;
   dateLivraison?: string;
   dateExpedition?: string;
+  totalTtc: number; 
   articles?: BonDeCommandeArticle[];
   
 }

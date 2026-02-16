@@ -43,6 +43,11 @@ public class BonDeCommande {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd MMMM yyyy hh:mm:ss a", locale = "fr_FR")
     private LocalDateTime dateLivraison;  // Date de livraison
 
+    @Column(nullable = false)
+    private Double totalTtc;
+
+
+
     // Getters et Setters
 
     public Long getId() {
@@ -117,4 +122,13 @@ public class BonDeCommande {
     public void setDateLivraison(LocalDateTime dateLivraison) {
         this.dateLivraison = dateLivraison;
     }
+    public Double getTotalTtc() {
+        return totalTtc;
+    }
+
+    public void setTotalTtc(Double totalTtc) {
+        this.totalTtc = totalTtc;
+    }
+
+
 }
