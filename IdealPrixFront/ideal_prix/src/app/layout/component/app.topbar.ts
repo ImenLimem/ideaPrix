@@ -15,7 +15,7 @@ import { LayoutService } from '../../service/layout.service';
             <button class="layout-menu-button layout-topbar-action" (click)="layoutService.onMenuToggle()">
                 <i class="pi pi-bars"></i>
             </button>
-            <a class="layout-topbar-logo" routerLink="/">
+            <!--<a class="layout-topbar-logo" routerLink="/">
                 <svg viewBox="0 0 54 40" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path
                         fill-rule="evenodd"
@@ -34,7 +34,16 @@ import { LayoutService } from '../../service/layout.service';
                     </g>
                 </svg>
                 <span>IDEAL PRIX</span>
+            </a>-->
+
+
+           <a class="layout-topbar-logo" routerLink="/" style="display: flex; align-items: center; gap: 15px;">
+                <img src="assets/logo-hah.jpg" 
+                    alt="Logo" 
+                    style="height: 45px; width: auto;" />
+                <span>IDEAL PRIX</span>
             </a>
+
         </div>
 
         <div class="layout-topbar-actions">

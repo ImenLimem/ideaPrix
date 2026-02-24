@@ -2,10 +2,16 @@ import { Routes } from '@angular/router';
 import { Articles } from './articles';
 import { Fournisseurs } from './fournisseurs';
 import { BonDeCommande } from './bonDeCommande';
+import { Dashboard } from './dashboard';
+
+
+
+
 
 
 export default [
-   
+
+    { path: 'dashboard', data: { breadcrumb: 'Dashboard' }, component:Dashboard  },
      { path: 'articles', data: { breadcrumb: 'Article' }, component: Articles },
     { path: 'fournisseurs', data: { breadcrumb: 'Fournisseurs' }, component: Fournisseurs},
      { path: 'bonsDeCommande', data: { breadcrumb: 'BonDeCommande' }, component: BonDeCommande },

@@ -21,7 +21,8 @@ import { AutoCompleteModule } from 'primeng/autocomplete';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Article } from '@/models/Article';
-
+import * as XLSX from 'xlsx';
+import FileSaver, { saveAs } from 'file-saver';
 
 
 @Component({
@@ -64,7 +65,15 @@ import { Article } from '@/models/Article';
         class="p-button-rounded p-button-primary"
         (click)="openAddCommandeDialog()"
       ></button>
-      <!--<button pButton label="Télécharger liste des prix" icon="pi pi-file-excel" class="p-button-rounded p-button-success"></button>-->
+      <button 
+        pButton
+        type="button"
+        label="Exporter Excel"
+        icon="pi pi-file-excel"
+        class="p-button-success"
+        (click)="exportBonDeCommandesExcel()">
+      </button>
+
     </div>
   </div>
 
@@ -142,7 +151,7 @@ import { Article } from '@/models/Article';
 
       </td>
       <td>
-        <!-- Actions -->
+        <!-- Bouton Modifier -->
         <button
           pButton
           type="button"
@@ -154,24 +163,43 @@ import { Article } from '@/models/Article';
             ? 'Modification impossible (déjà envoyé, livré ou terminé)' 
             : 'Modifier le bon de commande' }}"
           tooltipPosition="top"
+          style="margin-right: 8px;"
         ></button>
 
+        <!-- Bouton Télécharger PDF -->
         <button
           pButton
           icon="pi pi-download"
           class="p-button-rounded p-button-success p-button-text"
           (click)="downloadCommande(commande)"
           pTooltip="Télécharger le bon de commande"
+          style="margin-right: 8px;"
         ></button>
 
+        <!-- Bouton Archiver -->
         <button
           pButton
           icon="pi pi-trash"
           class="p-button-rounded p-button-danger p-button-text"
           (click)="archiveCommande(commande)"
           pTooltip="Archiver"
+          style="margin-right: 8px;"
         ></button>
+
+        <!-- Bouton Télécharger en TND -->
+        <button
+          pButton
+          type="button"
+          pTooltip="Télécharger Bon en Dinar Tunisien (TND)"
+          class="p-button-rounded p-button-lg"
+          (click)="openDollarDialog(commande)"
+          style="background-color: #7a8999; border: none; color: white;"
+        >
+          <i class="pi pi-money-bill" style="color: white;"></i>
+          <span style="margin-left: 5px; font-weight: bold; color: white;">TND</span>
+        </button>
       </td>
+
     </tr>
   </ng-template>
 </p-table>
@@ -566,6 +594,47 @@ import { Article } from '@/models/Article';
   </form>
 </p-dialog>
 
+<!-- Modal de téléchargement en Dinar TND -->
+<p-dialog 
+    header="Conversion Dollar → Dinar Tunisien"
+    [(visible)]="dollarDialogVisible"
+    [modal]="true"
+    [closable]="false"
+    [style]="{width: '400px'}">
+
+    <div class="p-fluid">
+        <div class="field">
+            <!-- Label avec marge en bas pour espacer l'input -->
+            <label class="p-mb-2">Taux du dollar (1 USD = ? TND)</label>
+            <input 
+                type="number"
+                pInputText
+                [(ngModel)]="dollarRate"
+                placeholder="Ex: 3.15"
+                style="width: 100%;"
+            />
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+            <button 
+                pButton 
+                label="Annuler" 
+                class="p-button-text"
+                (click)="dollarDialogVisible = false">
+            </button>
+
+            <button 
+                pButton 
+                label="Confirmer & Télécharger"
+                class="p-button-success"
+                (click)="confirmDollarConversion()">
+            </button>
+        </div>
+    </ng-template>
+</p-dialog>
+
 
 
 <!-- Dialog de confirmation d'archivage -->
@@ -751,14 +820,15 @@ export class BonDeCommande implements OnInit {
     filteredArticlesAdd: any[][] = [];
     modalArticlesAdd: any[] = [];
     displayCommandeDetails: boolean = false;
+    dollarDialogVisible = false;
+    dollarRate: number = 0;
+    selectedCommandeForDollar: any = null;
 
    
 
     statutOptions = [
-  { value: 'EN_ATTENTE', label: 'En attente' },
   { value: 'EN_COURS', label: 'En cours' },
   { value: 'LIVRE', label: 'Livré' },
-  { value: 'TERMINE', label: 'Terminé' },
   { value: 'ENVOYE', label: 'Envoyé' }
 ];
 
@@ -1789,5 +1859,261 @@ checkDatesAndSendEmail(bonCommande: any) {
     });
   }
 }
+exportBonDeCommandesExcel(): void {
+
+  const commandes = this.filteredBonDeCommandes();
+
+  if (!commandes || commandes.length === 0) {
+    this.messageService.add({
+      severity: 'warn',
+      summary: 'Aucune donnée',
+      detail: 'Aucun bon de commande à exporter.'
+    });
+    return;
+  }
+
+  const dataToExport = commandes.map((cmd: any) => ({
+    Numero_BC: cmd.numeroBonCommande || '',
+    Fournisseur: cmd.fournisseur 
+      ? `${cmd.fournisseur.nom} ${cmd.fournisseur.prenom}` 
+      : '',
+    Description: cmd.description || '',
+    Statut: this.mapStatut(cmd.statut),
+    Date_Commande: this.formatDateToDDMMYYYY(cmd.dateCommande),
+    Date_Expedition: this.formatDateToDDMMYYYY(cmd.dateExpedition),
+    Date_Livraison: this.formatDateToDDMMYYYY(cmd.dateLivraison),
+    Total_TTC_DT: this.getTotalBonCommande(cmd)
+  }));
+
+  const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);
+
+  const workbook: XLSX.WorkBook = {
+    Sheets: { 'BonsDeCommande': worksheet },
+    SheetNames: ['BonsDeCommande']
+  };
+
+  const excelBuffer: any = XLSX.write(workbook, {
+    bookType: 'xlsx',
+    type: 'array'
+  });
+
+  const blob: Blob = new Blob([excelBuffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  });
+
+  saveAs(blob, `Bons_De_Commande_${new Date().getTime()}.xlsx`);
+}
+openDollarDialog(commande: any) {
+  this.selectedCommandeForDollar = commande;
+  this.dollarRate = 0;
+  this.dollarDialogVisible = true;
+}
+confirmDollarConversion() {
+
+  if (!this.dollarRate || this.dollarRate <= 0) {
+    this.messageService.add({
+      severity: 'error',
+      summary: 'Erreur',
+      detail: 'Veuillez entrer un taux valide.'
+    });
+    return;
+  }
+
+  this.dollarDialogVisible = false;
+
+  this.downloadCommandeEnDinar(
+    this.selectedCommandeForDollar,
+    this.dollarRate
+  );
+}
+async downloadCommandeEnDinar(commande: any, dollarRate: number) {
+  if (!commande || !dollarRate || dollarRate <= 0) {
+    this.messageService.add({
+      severity: 'error',
+      summary: 'Erreur',
+      detail: 'Taux dollar invalide.'
+    });
+    return;
+  }
+
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  // ---------------- LOGO ----------------
+  let logoBase64 = '';
+  try {
+    logoBase64 = await this.convertImageToBase64('assets/logo-hah.jpg');
+  } catch (err) {
+    console.error('Erreur logo', err);
+  }
+  if (logoBase64) {
+    doc.addImage(logoBase64, 'JPEG', pageWidth - 54, 10, 40, 30);
+  }
+
+  // ---------------- INFOS SOCIÉTÉ ----------------
+  let startY = 20;
+
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("Société Hosni Ayed Holding", 14, startY);
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text("Avenue Hbib Bourguiba Kisbet el Madiouni", 14, startY + 6);
+  doc.text("Email: contact@hosniayed.com", 14, startY + 12);
+  doc.text("Tél: +216 71 000 000", 14, startY + 18);
+  doc.text("Code TVA: 1810075L/A/M/000", 14, startY + 24);
+
+  // ---------------- TITRE ----------------
+  doc.setFontSize(15);
+  doc.setFont("helvetica", "bold");
+  doc.text("BON DE COMMANDE (Converti en Dinar Tunisien)", pageWidth / 2, startY + 40, { align: 'center' });
+
+  // ---------------- INFOS COMMANDE ----------------
+  startY += 50;
+  const rectX = 12;
+  const rectY = startY;
+  const rectWidth = pageWidth - 24;
+  const rectHeight = 36;
+
+  doc.rect(rectX, rectY, rectWidth, rectHeight);
+  doc.setFontSize(10);
+
+  doc.text(`N°: ${commande.numeroBonCommande || 'N/A'}`, rectX + 4, rectY + 6);
+
+  const rightX = rectX + rectWidth - 4;
+  doc.text(
+    `Date : ${commande.dateCommande ? new Date(commande.dateCommande).toLocaleDateString() : 'N/A'}`,
+    rightX,
+    rectY + 6,
+    { align: 'right' }
+  );
+  doc.text(
+    `Date de livraison : ${commande.dateLivraison ? new Date(commande.dateLivraison).toLocaleDateString() : 'N/A'}`,
+    rightX,
+    rectY + 12,
+    { align: 'right' }
+  );
+
+  // ------------------- AJOUT DU TAUX USD -------------------
+doc.setFont("helvetica", "bold");
+doc.setFontSize(10);
+doc.text(
+  `Taux $ En TND: ${dollarRate.toFixed(2)}`,
+  rightX,
+  rectY + 18, // position juste en dessous de date de livraison
+  { align: 'right' }
+);
+
+  const fournisseur = commande.fournisseur || {};
+  doc.text(`Fournisseur: ${fournisseur.nom || 'N/A'} ${fournisseur.prenom || ''}`, rectX + 4, rectY + 14);
+  doc.text(`Adresse: ${fournisseur.adresse || 'N/A'}`, rectX + 4, rectY + 20);
+  doc.text(`Email: ${fournisseur.email || 'N/A'}`, rectX + 4, rectY + 26);
+  doc.text(`Tél: ${fournisseur.tel || 'N/A'}`, rectX + 4, rectY + 32);
+
+  // Ligne séparation
+  startY += 36;
+  doc.line(14, startY, pageWidth - 14, startY);
+
+  // ---------------- TABLEAU ----------------
+  const tableColumn = ["#", "Code", "Article", "Quantité", "Prix Unitaire (USD)", "Prix Unitaire (TND)"];
+  const tableRows: any[] = [];
+  let totalTND = 0;
+
+  if (commande.articles && commande.articles.length > 0) {
+    commande.articles.forEach((a: any, index: number) => {
+      const quantite = a.quantite ?? 0;
+      const prixUSD = a.article?.prixAchat ?? 0;
+      const prixTND = prixUSD * dollarRate;
+      totalTND += prixTND * quantite;
+
+      tableRows.push([
+        index + 1,
+        a.article?.code || 'N/A',
+        a.article?.nom || 'N/A',
+        quantite,
+        prixUSD.toFixed(2) ,
+        prixTND.toFixed(2) 
+      ]);
+    });
+  }
+
+  const MAX_ROWS_PER_PAGE = 20;
+  const pages = [];
+
+  // Découper les lignes en pages
+  for (let i = 0; i < tableRows.length; i += MAX_ROWS_PER_PAGE) {
+    pages.push(tableRows.slice(i, i + MAX_ROWS_PER_PAGE));
+  }
+
+  let currentY = startY + 10;
+  const bottomReservedSpace = 35;
+
+  pages.forEach((pageRows, pageIndex) => {
+    autoTable(doc, {
+      startY: currentY,
+      head: [tableColumn],
+      body: pageRows,
+      theme: 'grid',
+      margin: { left: 14, right: 14, bottom: bottomReservedSpace },
+      styles: { 
+        fontSize: 9, 
+        cellPadding: 0.9, 
+        valign: 'middle' 
+      },
+      headStyles: { fillColor: [220, 53, 69], textColor: 255, fontStyle: 'bold' },
+      pageBreak: 'auto'
+    });
+
+    if (pageIndex < pages.length - 1) {
+      doc.addPage();
+      currentY = 20;
+    }
+  });
+
+  // ---------------- TOTAL + SIGNATURE ----------------
+const totalY = pageHeight - 60;
+doc.setFont("helvetica", "bold");
+doc.text(`TOTAL TTC: ${totalTND.toFixed(2)} TND`, pageWidth - 20, totalY, { align: 'right' });
+
+// ---------------- CALCUL DIFFERENCE ----------------
+let totalUSD = 0;
+if (commande.articles && commande.articles.length > 0) {
+  commande.articles.forEach((a: any) => {
+    const quantite = a.quantite ?? 0;
+    const prixUSD = a.article?.prixAchat ?? 0;
+    totalUSD += prixUSD * quantite;
+  });
+}
+
+const difference = totalTND - (totalUSD * dollarRate); // normalement = 0 si conversion exacte, mais utile si arrondi
+doc.setFont("helvetica", "normal");
+doc.setFontSize(10);
+/*doc.text(
+  `Différence Total $ En TND: ${difference.toFixed(2)} TND`,
+  pageWidth - 20,
+  totalY + 6,
+  { align: 'right' }
+);
+*/
+const signatureY = totalY + 12; // signature un peu plus bas
+doc.setFont("helvetica", "normal");
+doc.text("Signature", pageWidth - 20, signatureY, { align: 'right' });
+
+
+  // ---------------- NUMERO PAGE ----------------
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(9);
+    doc.text(`Page ${i} / ${pageCount}`, pageWidth - 25, pageHeight - 30);
+  }
+
+  // ---------------- SAVE ----------------
+  doc.save(`BonCommande_TND_${commande.numeroBonCommande || 'N-A'}.pdf`);
+}
+
+
 
 }

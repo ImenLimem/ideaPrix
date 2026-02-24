@@ -86,7 +86,7 @@ interface expandedRows {
 
                     <button
                         pButton
-                        label="Exporter PDF"
+                        label="Exporter Excel"
                         icon="pi pi-file-excel"
                         class="p-button-success"
                         (click)="exportToExcel()">

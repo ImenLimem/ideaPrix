@@ -24,7 +24,7 @@ public class BonDeCommandeScheduler {
     }
 
     // Planification tous les jours à minuit (00:00)
-    @Scheduled(cron = "0 * * * * ?", zone = "Africa/Tunis")
+    @Scheduled(cron = "0 0 0 * * ?", zone = "Africa/Tunis")
     public void envoyerEmailsAutomatiques() {
         LocalDate today = LocalDate.now(ZoneId.systemDefault()); // date actuelle
         System.out.println("Vérification des bons de commande pour la date : " + today);
